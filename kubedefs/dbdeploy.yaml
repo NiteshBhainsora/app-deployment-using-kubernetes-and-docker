@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: vprodb
@@ -14,12 +14,16 @@ spec:
       labels:
         app: vprodb
     spec:
+      initContainers:
+        - name: busybox
+          image: busybox:latest
+          command: ["rm", "-rf", "/var/lib/mysql/lost+found"]
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: vpro-db-data
       containers:
         - name: vprodb
           image: niteshnitin/vprofiledb
-          volumeMounts:
-            - mountPath: /var/lib/mysql
-              name: db-storage
           ports:
             - name: vprodb-port
               containerPort: 3306
@@ -29,15 +33,10 @@ spec:
                 secretKeyRef:
                   name: app-secret
                   key: db-pass
-              volumes:
-                - name: db-storage
-                  persistentVolumeClaim:
-                    claimName: db-pv-claim
-          initContainers:
-            - name: busybox
-              image: busybox
-              args: ["rm", "-rf" , "/var/lib/mysql/lost+found"]
-              volumeMounts:
-                - mountPath: /var/lib/mysql
-                  name: db-storage
-              
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: vpro-db-data
+      volumes:
+        - name: vpro-db-data
+          persistentVolumeClaim:
+            claimName: db-pv-claim
